@@ -1,7 +1,6 @@
-// backend/routes/ragRoutes.js
 const express = require("express");
 const multer = require("multer");
-const pdfParse = require("pdf-parse"); // ✅ works with pdf-parse@1.1.1
+const pdfParse = require("pdf-parse"); // using pdf-parse@1.1.1
 
 const Document = require("../models/Document");
 const Chunk = require("../models/Chunk");
@@ -54,8 +53,6 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     }
 
     console.log("📄 Extracting PDF text...");
-
-    // ✅ simple usage with pdf-parse@1.1.1
     const pdfData = await pdfParse(req.file.buffer);
     const text = pdfData.text || "";
 
@@ -65,19 +62,16 @@ router.post("/upload", upload.single("file"), async (req, res) => {
         .json({ error: "Text extraction from PDF failed" });
     }
 
-    // Create document record
     const doc = await Document.create({
       title: req.file.originalname,
       originalName: req.file.originalname,
     });
 
-    // Chunk text
     const chunks = chunkText(text);
     console.log(`🔹 ${chunks.length} chunks generated`);
 
-    // Embed and save each chunk
     for (const chunk of chunks) {
-      const embedding = await getEmbedding(chunk); // Gemini embeddings
+      const embedding = await getEmbedding(chunk);
       await Chunk.create({
         document: doc._id,
         text: chunk,
@@ -91,13 +85,14 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Upload error:", err);
-    res
-      .status(500)
-      .json({ error: "Server processing error", details: err.message });
+    res.status(500).json({
+      error: "Server processing error",
+      details: err.message,
+    });
   }
 });
 
-// ======================= 📌 2. CHAT =======================
+// ======================= 📌 2. CHAT (single doc OR all docs) =======================
 router.post("/chat", async (req, res) => {
   try {
     const { question, documentId } = req.body;
@@ -105,6 +100,7 @@ router.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "Question required" });
     }
 
+    // If documentId is null/undefined => All documents
     const filter = documentId ? { document: documentId } : {};
     const chunks = await Chunk.find(filter).lean();
 
@@ -116,7 +112,6 @@ router.post("/chat", async (req, res) => {
 
     const qEmbed = await getEmbedding(question);
 
-    // Score all chunks by similarity
     const scored = chunks
       .map((c) => ({
         ...c,
@@ -148,7 +143,7 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-// ======================= 📌 3. SUMMARY =======================
+// ======================= 📌 3. SUMMARY (single doc OR all docs) =======================
 router.post("/summarize", async (req, res) => {
   try {
     const { documentId } = req.body;
@@ -159,7 +154,6 @@ router.post("/summarize", async (req, res) => {
       return res.status(400).json({ error: "No document uploaded." });
     }
 
-    // Combine first N chunks for summary
     const combined = chunks
       .slice(0, 40)
       .map((c) => c.text)
@@ -174,7 +168,7 @@ router.post("/summarize", async (req, res) => {
   }
 });
 
-// ======================= 📌 4. SIMILARITY CHECK =======================
+// ======================= 📌 4. SIMILARITY CHECK (plagiarism-like) =======================
 router.post("/similarity", async (req, res) => {
   try {
     const { text, documentId } = req.body;
@@ -205,6 +199,77 @@ router.post("/similarity", async (req, res) => {
   } catch (err) {
     console.error("❌ Similarity error:", err);
     res.status(500).json({ error: "Similarity check failed" });
+  }
+});
+
+// ======================= 📌 5. LIST DOCUMENTS =======================
+router.get("/documents", async (req, res) => {
+  try {
+    const docs = await Document.aggregate([
+      {
+        $lookup: {
+          from: "chunks",
+          localField: "_id",
+          foreignField: "document",
+          as: "chunks",
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          originalName: 1,
+          category: 1,
+          tags: 1,
+          createdAt: 1,
+          chunkCount: { $size: "$chunks" },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+    ]);
+
+    res.json(docs);
+  } catch (err) {
+    console.error("❌ List documents error:", err);
+    res.status(500).json({ error: "Failed to fetch documents" });
+  }
+});
+
+// ======================= 📌 6. UPDATE DOCUMENT (rename / tags / category) =======================
+router.patch("/document/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, category, tags } = req.body;
+
+    const update = {};
+    if (typeof title === "string") update.title = title;
+    if (typeof category === "string") update.category = category;
+    if (Array.isArray(tags)) update.tags = tags;
+
+    const doc = await Document.findByIdAndUpdate(id, update, { new: true });
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    res.json(doc);
+  } catch (err) {
+    console.error("❌ Update document error:", err);
+    res.status(500).json({ error: "Failed to update document" });
+  }
+});
+
+// ======================= 📌 7. DELETE DOCUMENT =======================
+router.delete("/document/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const doc = await Document.findById(id);
+    if (!doc) return res.status(404).json({ error: "Document not found" });
+
+    await Chunk.deleteMany({ document: id });
+    await Document.findByIdAndDelete(id);
+
+    res.json({ message: "Document and its chunks deleted successfully." });
+  } catch (err) {
+    console.error("❌ Delete document error:", err);
+    res.status(500).json({ error: "Failed to delete document" });
   }
 });
 
