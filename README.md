@@ -1,70 +1,108 @@
-# Getting Started with Create React App
+📄 RAG Chatbot – Multi-Language AI PDF + Website Chat Assistant
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack MERN + Gemini-powered Retrieval Augmented Generation chatbot that allows users to upload PDFs or ingest Websites and ask questions in English, Hindi, or Marathi — and the bot replies in the same language, using your documents as knowledge.
 
-## Available Scripts
+No hallucination — answers come only from your uploaded sources.
 
-In the project directory, you can run:
+🚀 Features
+Feature	Status
+PDF Upload + Chunk Embedding	✔
+Website URL Ingestion (text extraction)	✔
+Multi-Language Chat (Hindi/Marathi/English)	✔
+Chat across all documents	✔
+Rename, Delete, Tag Documents	✔
+AI Summary + Tools Panel	✔
+Real Vector-based RAG Search	✔
+Response based purely on context (no hallucination)	✔
+🧠 Multi-Language RAG
 
-### `npm start`
+You can ask in:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+English → "What is supervised learning?"
+Hindi   → "इस PDF में supervised learning क्या है?"
+Marathi → "या PDF मध्ये supervised learning म्हणजे काय?"
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
 
-### `npm test`
+And AI will answer in the same language, pulling facts only from your documents.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+🛠 Tech Stack
+Frontend
 
-### `npm run build`
+React + Vite
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Axios API Service
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Dark UI Minimal Layout
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Backend
 
-### `npm run eject`
+Node.js + Express
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Gemini API → Embeddings + Chat Completion
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Cosine Similarity Ranking
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+pdf-parse for file decoding
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+axios for website scraping
 
-## Learn More
+Database
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+MongoDB + Mongoose
+Stores documents, chunks & embeddings.
+RAG-chatbot-mern/
+│── backend/
+│   ├── models/Document.js
+│   ├── models/Chunk.js
+│   ├── routes/ragRoutes.js    <-- PDF + Website ingest + Chat
+│   ├── utils/gemini.js        <-- Multi-language RAG Support
+│   ├── server.js
+│
+│── frontend/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── api.js
+│   │   ├── components/
+│   │   │   ├── DocumentUpload.jsx
+│   │   │   ├── DocumentSelector.jsx
+│   │   │   ├── ToolsPanel.jsx
+│   │   │   ├── ChatBox.jsx
+│   │   ├── App.css
+│
+├── README.md ← (You are here)
+├── .gitignore
+├── package.json
+🔧 Setup Guide
+1️⃣ Backend Setup
+bash
+Copy code
+cd backend
+npm install
+node server.js
+Create .env inside backend/
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+env
+Copy code
+PORT=5000
+MONGO_URI=your_mongo_connection
+GEMINI_API_KEY=your_gemini_key
+2️⃣ Frontend Setup
+bash
+Copy code
+cd frontend
+npm install
+npm run dev
+Access UI:
 
-### Code Splitting
+👉 http://localhost:5173
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+🥇 Usage Flow
+Upload a PDF OR Enter a website URL
 
-### Analyzing the Bundle Size
+The system extracts + chunks + stores embeddings
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Ask questions in any language
 
-### Making a Progressive Web App
+AI responds using chunks as context
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+View, rename, delete, and manage document knowledge
